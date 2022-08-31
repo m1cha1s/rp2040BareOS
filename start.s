@@ -1,0 +1,98 @@
+.equ RESETS_BASE, 0x4000C000
+
+.equ RESETS_RESET_RW, (RESETS_BASE + 0x0 + 0x0000)
+.equ RESETS_RESET_XOR, (RESETS_BASE + 0x0 + 0x1000)
+.equ RESETS_RESET_SET, (RESETS_BASE + 0x0 + 0x2000)
+.equ RESETS_RESET_CLR, (RESETS_BASE + 0x0 + 0x3000)
+
+.equ RESETS_WDSEL_RW, (RESETS_BASE + 0x4 + 0x0000)
+.equ RESETS_WDSEL_XOR, (RESETS_BASE + 0x4 + 0x1000)
+.equ RESETS_WDSEL_SET, (RESETS_BASE + 0x4 + 0x2000)
+.equ RESETS_WDSEL_CLR, (RESETS_BASE + 0x4 + 0x3000)
+
+.equ RESETS_RESET_DONE_RW, (RESETS_BASE + 0x8 + 0x0000)
+.equ RESETS_RESET_DONE_XOR, (RESETS_BASE + 0x8 + 0x1000)
+.equ RESETS_RESET_DONE_SET, (RESETS_BASE + 0x8 + 0x2000)
+.equ RESETS_RESET_DONE_CLR, (RESETS_BASE + 0x8 + 0x3000)
+
+.equ SIO_BASE, 0xD0000000
+
+.equ SIO_GPIO_OUT_RW, (SIO_BASE + 0x10)
+.equ SIO_GPIO_OUT_SET, (SIO_BASE + 0x14)
+.equ SIO_GPIO_OUT_CLR, (SIO_BASE + 0x18)
+.equ SIO_GPIO_OUT_XOR, (SIO_BASE + 0x1C)
+
+.equ SIO_GPIO_OE_RW, (SIO_BASE + 0x20)
+.equ SIO_GPIO_OE_SET, (SIO_BASE + 0x24)
+.equ SIO_GPIO_OE_CLR, (SIO_BASE + 0x28)
+.equ SIO_GPIO_OE_XOR, (SIO_BASE + 0x2C)
+
+.equ IO_BANK0_BASE, 0x40014000
+
+.equ IO_BANK0_GPIO25_STATUS_RW, (IO_BANK0_BASE + 0x0C8 + 0x0000)
+.equ IO_BANK0_GPIO25_STATUS_XOR, (IO_BANK0_BASE + 0x0C8 + 0x1000)
+.equ IO_BANK0_GPIO25_STATUS_SET, (IO_BANK0_BASE + 0x0C8 + 0x2000)
+.equ IO_BANK0_GPIO25_STATUS_CLR,(IO_BANK0_BASE + 0x0C8 + 0x3000)
+
+.equ IO_BANK0_GPIO25_CTRL_RW, (IO_BANK0_BASE + 0x0CC + 0x0000)
+.equ IO_BANK0_GPIO25_CTRL_XOR, (IO_BANK0_BASE + 0x0CC + 0x1000)
+.equ IO_BANK0_GPIO25_CTRL_SET, (IO_BANK0_BASE + 0x0CC + 0x2000)
+.equ IO_BANK0_GPIO25_CTRL_CLR, (IO_BANK0_BASE + 0x0CC + 0x3000)
+
+
+.cpu cortex-m0
+.thumb
+.section .text
+
+SETUP_STACK:
+    ldr r0,=0x20001000
+    mov sp,r0
+    
+RELEASE_BANK0:
+    ldr r0,=RESETS_RESET_CLR
+    ldr r1,=0b100000
+    str r1,[r0]
+WAIT_FOR_RST:
+    ldr r3,=(1<<5)
+    ldr r4,=0
+    ldr r0,=RESETS_RESET_DONE_RW
+WAITING:
+    ldr r1,[r0]
+    and r1,r3
+    cmp r1,r4
+    beq WAITING
+OUTPUT_DISABLE:
+    ldr r0,=SIO_GPIO_OE_CLR
+    ldr r1,=1<<25
+    str r1,[r0]
+PIN_OFF:
+    ldr r0,=SIO_GPIO_OUT_CLR
+    str r1,[r0]
+SIO_SELECT:
+    ldr r0,=IO_BANK0_GPIO25_CTRL_RW
+    ldr r2,=5
+    str r2,[r0]
+OUTPUT_ENABLE:
+    ldr r0,=SIO_GPIO_OE_SET
+    str r1,[r0]
+LOOP_PREP:
+    ldr r2,=SIO_GPIO_OUT_SET
+    ldr r3,=SIO_GPIO_OUT_CLR
+LOOP:
+    str r1,[r2]
+    ldr r0,=0x100000
+    bl DELAY
+    str r1,[r3]
+    ldr r0,=0x100000
+    bl DELAY
+    b LOOP
+    
+
+
+    b .
+
+.thumb_func
+DELAY:
+    sub r0,#1
+    bne DELAY
+    bx lr

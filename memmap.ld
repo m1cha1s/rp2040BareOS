@@ -5,7 +5,11 @@ MEMORY
 }
 SECTIONS
 {
-    .text   : { *(.text*)   } > flash
+    .text : 
+    {
+        *(.text.boot)
+        *(.text*)   
+    } > flash
 }
 
 /*

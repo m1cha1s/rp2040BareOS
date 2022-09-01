@@ -42,7 +42,7 @@
 
 .cpu cortex-m0
 .thumb
-.section .text
+.section .text.boot
 
 SETUP_STACK:
     ldr r0,=0x20001000
